@@ -7,9 +7,14 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages.showErrorDialog
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.psi.PsiFileSystemItem
+import com.intellij.psi.PsiManager
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.refactoring.rename.RenameProcessor
 import nl.bryanderidder.regexrenamefiles.icons.RegexRenameFilesIcons.ActionIcon
 import java.io.IOException
 
@@ -37,9 +42,16 @@ class ReplaceFileNamesAction : DumbAwareAction(ActionIcon) {
             val events: List<RenameEvent> = ReadAction.compute<List<RenameEvent>, Throwable> {
                 prepareFilesRename(dialog, project)
             } ?: return
-            WriteCommandAction.runWriteCommandAction(project, ReplaceFileNamesDialogWrapper.TITLE, groupId, {
-                renameFiles(project, events)
-            })
+            val rest = if (dialog.isUseRenameRefactoring()) {
+                renameUsingRefactoring(project, events)
+            } else {
+                events
+            }
+            if (rest.isNotEmpty()) {
+                WriteCommandAction.runWriteCommandAction(project, ReplaceFileNamesDialogWrapper.TITLE, groupId, {
+                    renameFiles(project, rest)
+                })
+            }
         }
     }
 
@@ -60,6 +72,41 @@ class ReplaceFileNamesAction : DumbAwareAction(ActionIcon) {
             return null
         }
         return events
+    }
+
+    private fun renameUsingRefactoring(project: Project, events: List<RenameEvent>): List<RenameEvent> {
+        val rest = ArrayList<RenameEvent>()
+        val psiManager = PsiManager.getInstance(project)
+        var processor: RenameProcessor? = null
+
+        if (DumbService.isDumb(project)) {
+            // Rename Refactoring doesn't work in dumb mode, fallback to VirtualFile rename
+            return events
+        }
+        for (event in events) {
+            val file = event.file
+            val psiFSItem: PsiFileSystemItem? = if (file.isDirectory) {
+                psiManager.findDirectory(file)
+            } else {
+                psiManager.findFile(file)
+            }
+            if (psiFSItem != null) {
+                if (processor == null) {
+                    processor = RenameProcessor(project, psiFSItem, event.newName, GlobalSearchScope.projectScope(project), true, true)
+                    processor.setCommandName(ReplaceFileNamesDialogWrapper.TITLE)
+                } else {
+                    processor.addElement(psiFSItem, event.newName)
+                }
+            } else {
+                rest.add(event)
+            }
+        }
+        if (DumbService.isDumb(project)) {
+            // Rename Refactoring doesn't work in dumb mode, fallback to VirtualFile rename
+            return events
+        }
+        processor?.run()
+        return rest
     }
 
     private fun renameFiles(project: Project, events: List<RenameEvent>) {

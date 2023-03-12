@@ -21,6 +21,7 @@ public class ReplaceFileNamesDialog extends JDialog implements IReplaceFileNames
   private JCheckBox renameNestedFilesCheckBox;
   private JCheckBox renameNestedDirectoriesCheckBox;
   private JCheckBox renameToLowerCaseCheckBox;
+  private JCheckBox useRenameRefactoring;
   private Runnable onUpdateRegexCheckBox;
   private Runnable onUpdateRenameNestedFilesCheckBox;
   private Runnable onUpdateRenameNestedDirectoriesCheckBox;
@@ -62,6 +63,11 @@ public class ReplaceFileNamesDialog extends JDialog implements IReplaceFileNames
   @Override
   public boolean isLowerCase() {
     return renameToLowerCaseCheckBox.isSelected();
+  }
+
+  @Override
+  public boolean isUseRenameRefactoring() {
+    return useRenameRefactoring.isSelected();
   }
 
   @Override

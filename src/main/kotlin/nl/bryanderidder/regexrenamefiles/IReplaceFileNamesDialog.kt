@@ -14,6 +14,7 @@ interface IReplaceFileNamesDialog {
     val replaceToText: String
     val isUseRegex: Boolean
     val isLowerCase: Boolean
+    val isUseRenameRefactoring: Boolean
     fun setDescriptionText(text: String)
     fun setPreviewText(text: String)
     fun onUpdateRegexCheckBox(onUpdateRegexCheckBox: Runnable)

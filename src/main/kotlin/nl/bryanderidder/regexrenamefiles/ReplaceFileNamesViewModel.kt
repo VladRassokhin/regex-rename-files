@@ -11,6 +11,7 @@ class ReplaceFileNamesViewModel(private val selectedFiles: List<VirtualFile>, va
     val replaceToText: String get() = view.replaceToText
     val isUseRegex: Boolean get() = view.isUseRegex
     val isLowerCase: Boolean get() = view.isLowerCase
+    val isUseRenameRefactoring: Boolean get() = view.isUseRenameRefactoring
 
     init {
         initialiseViews()
